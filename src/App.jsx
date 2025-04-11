@@ -14,6 +14,9 @@ import AdminPanel from "./pages/AdminPanel";
 import Profile from "./pages/profile";
 import Logout from "./pages/logout";
 import QuizApp from "./pages/Quiz";
+import ChatBot from "./pages/chatBot";
+import HRChatbot from "./pages/videodetect";
+import DSAPlayground from "./pages/DSAPlayground";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -42,6 +45,7 @@ function AppNav() {
         {navLink("/roadmap", "Roadmap")}
         {navLink("/profile", "Profile")}
         {navLink("/quizapp", "Quiz")}
+        {navLink("/dsa", "DSA Playground")}
         {isSignedIn && user?.publicMetadata?.role === "admin" && navLink("/admin", "Admin Panel")}
         {isSignedIn && navLink("/logout", "Logout")}
         <SignedOut>
@@ -74,7 +78,14 @@ function App() {
             <Route path="/challenge/:id" element={<SignedIn><SolveChallenge /></SignedIn>} />
             <Route path="/leaderboard" element={<SignedIn><Leaderboard /></SignedIn>} />
             <Route path="/roadmap" element={<SignedIn><Roadmap /></SignedIn>} />
-            <Route path="/quizapp" element={<SignedIn><QuizApp /></SignedIn>} />
+            <Route path="/dsa" element={<SignedIn>< DSAPlayground /></SignedIn>} />
+            <Route path="/quizapp" element={
+              
+              <SignedIn> 
+                <HRChatbot/>
+                <ChatBot/>
+              </SignedIn>} 
+              />
             <Route path="/profile" element={<SignedIn><Profile /></SignedIn>} />
             <Route path="/login" element={<SignedOut><Login /></SignedOut>} />
             <Route path="/signup" element={<SignedOut><Signup /></SignedOut>} />

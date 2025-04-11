@@ -2,47 +2,51 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 const Quiz = () => {
-  const [topic, setTopic] = useState('');
-  const [questionData, setQuestionData] = useState(null);
+  const [question, setQuestion] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const generateQuestion = async () => {
-    if (!topic.trim()) {
-      alert('Please enter a topic');
-      return;
-    }
+  const handleNewQuestion = async () => {
+    setLoading(true);
+    setError('');
+    setQuestion(null);
+
+    const prompt = `Give me a DSA multiple choice question in JSON format:
+    {
+      "question": "string",
+      "options": ["option1", "option2", "option3", "option4"],
+      "answer": "correct option"
+    }`;
+
     try {
-      console.log("Sending topic:", topic);
-      const res = await axios.post('http://localhost:5000/api/generate', {
-        topic: topic,
-      });
-      setQuestionData(res.data.question);
+      const response = await axios.post('/api/gemini', { prompt });
+      setQuestion(response.data);
     } catch (err) {
-      console.error('❌ Error:', err);
-      alert("Failed to generate question");
+      console.error('Error fetching question:', err);
+      setError(err.response?.data?.error || "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: '2rem', color: '#fff' }}>
-      <h2>Quiz Generator</h2>
-      <div>
-        <input
-          type="text"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="Enter topic (e.g., js)"
-        />
-        <button onClick={generateQuestion}>Generate Question</button>
-      </div>
+    <div className="quiz-container">
+      <h1>🧠 DSA Quiz App</h1>
+      <button onClick={handleNewQuestion} disabled={loading}>
+        {loading ? "Loading..." : "Generate New Question"}
+      </button>
 
-      {questionData && (
-        <div style={{ marginTop: '1rem' }}>
-          <h3>{questionData.question}</h3>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      {question && (
+        <div className="question-card">
+          <h3>{question.question}</h3>
           <ul>
-            {questionData.options.map((opt, index) => (
-              <li key={index}>{opt}</li>
+            {question.options.map((opt, idx) => (
+              <li key={idx}>{opt}</li>
             ))}
           </ul>
+          <p><strong>Answer:</strong> {question.answer}</p>
         </div>
       )}
     </div>
