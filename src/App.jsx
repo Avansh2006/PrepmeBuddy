@@ -44,7 +44,7 @@ function AppNav() {
         {navLink("/leaderboard", "Leaderboard")}
         {navLink("/roadmap", "Roadmap")}
         {navLink("/profile", "Profile")}
-        {navLink("/quizapp", "Quiz")}
+        {navLink("/quizapp", "Mock-Interview")}
         {navLink("/dsa", "DSA Playground")}
         {isSignedIn && user?.publicMetadata?.role === "admin" && navLink("/admin", "Admin Panel")}
         {isSignedIn && navLink("/logout", "Logout")}

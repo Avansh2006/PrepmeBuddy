@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { FaClock } from "react-icons/fa"; // Import clock icon
 
 const DSAPlayground = () => {
   const [code, setCode] = useState("");
@@ -119,7 +120,7 @@ const DSAPlayground = () => {
                   {
                     text: `Evaluate the following code for the question: "${question}". Use the test cases: ${JSON.stringify(
                       testCases
-                    )}. Provide detailed feedback in 50 words or less, including scopes of improvement and flaws in the code, based on code quality, efficiency, and correctness.\n\nCode:\n${code}`,
+                    )}. Provide a JSON response with the following fields: "correct" (true/false), "codeImprovement" (suggestions for improvement), "syntaxShortening" (ways to shorten the code), and "etc" (any additional feedback).\n\nCode:\n${code}`,
                   },
                 ],
               },
@@ -135,27 +136,36 @@ const DSAPlayground = () => {
       );
 
       const data = await res.json();
-      const generatedOutput =
+      let generatedOutput =
         data?.candidates?.[0]?.content?.parts?.[0]?.text ||
         "Failed to evaluate the code. Please try again.";
 
       console.log("Generated Output:", generatedOutput); // Debugging: Log the API response
 
-      // Handle feedback extraction
-      if (generatedOutput && generatedOutput.length > 0) {
-        const cleanedFeedback = generatedOutput
-          .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>") // Replace `**` with bold HTML tags
-          .split(" ")
-          .slice(0, 50) // Limit feedback to 50 words
-          .join(" ");
-        setFeedback(cleanedFeedback);
-      } else {
-        console.warn("No feedback found in response."); // Debugging: Log missing feedback
-        setFeedback("No feedback received.");
+      // Sanitize the response to remove invalid JSON artifacts
+      generatedOutput = generatedOutput.replace(/```json|```/g, "").trim();
+
+      // Parse the JSON response
+      try {
+        const parsedFeedback = JSON.parse(generatedOutput);
+
+        // Extract and format user-friendly outputs with styled topics
+        const userFeedback = `
+          <b style="color: #00d4ff;">Correct:</b> ${parsedFeedback.correct ? "Yes" : "No"}<br/>
+          <b style="color: #00d4ff;">Code Improvement:</b> ${parsedFeedback.codeImprovement || "None"}<br/>
+          <b style="color: #00d4ff;">Syntax Shortening:</b> ${parsedFeedback.syntaxShortening || "None"}<br/>
+          <b style="color: #00d4ff;">Additional Feedback:</b> ${parsedFeedback.etc || "None"}
+        `;
+        setFeedback(userFeedback.trim());
+      } catch (parseError) {
+        console.error("Error parsing JSON response:", parseError);
+        setFeedback(
+          "We encountered an issue processing the feedback. Please ensure your code is correct and try again."
+        );
       }
     } catch (error) {
       console.error("Error running code:", error);
-      setFeedback("Error running code. Please try again.");
+      setFeedback("An error occurred while running your code. Please try again.");
     }
   };
 
@@ -192,22 +202,91 @@ const DSAPlayground = () => {
   }, []);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h2>DSA Playground</h2>
-      <div style={{ marginBottom: "20px" }}>
-        <h3>Question</h3>
-        <p style={{ whiteSpace: "pre-wrap" }}>{question}</p>
-      </div>
-      <div style={{ marginBottom: "20px" }}>
-        <h3>Test Cases</h3>
-        <ul>
+    <div
+      style={{
+        padding: "20px",
+        fontFamily: "'Roboto', sans-serif",
+        backgroundColor: "#1e1e2f",
+        color: "#ffffff",
+        minHeight: "100vh",
+      }}
+    >
+      {/* Header */}
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#00d4ff" }}>
+          DSA Playground
+        </h1>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            backgroundColor: "#2a2a3b",
+            padding: "10px 15px",
+            borderRadius: "8px",
+          }}
+        >
+          <FaClock size={20} color="#00d4ff" />
+          {isTimerRunning && (
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: "bold" }}>
+              {formatTime(timer)}
+            </p>
+          )}
+        </div>
+      </header>
+
+      {/* Question Section */}
+      <section
+        style={{
+          marginBottom: "20px",
+          padding: "15px",
+          backgroundColor: "#2a2a3b",
+          borderRadius: "8px",
+        }}
+      >
+        <h2 style={{ fontSize: "20px", marginBottom: "10px" }}>Question</h2>
+        <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>{question}</p>
+      </section>
+
+      {/* Test Cases Section */}
+      <section
+        style={{
+          marginBottom: "20px",
+          padding: "15px",
+          backgroundColor: "#2a2a3b",
+          borderRadius: "8px",
+        }}
+      >
+        <h2 style={{ fontSize: "20px", marginBottom: "10px" }}>Test Cases</h2>
+        <ul style={{ paddingLeft: "20px" }}>
           {testCases.map((testCase, index) => (
-            <li key={index}>{testCase}</li>
+            <li key={index} style={{ marginBottom: "5px" }}>
+              {testCase}
+            </li>
           ))}
         </ul>
-      </div>
-      <div style={{ marginBottom: "10px" }}>
-        <label htmlFor="language-select" style={{ marginRight: "10px" }}>
+      </section>
+
+      {/* Language Selector */}
+      <div
+        style={{
+          marginBottom: "20px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <label
+          htmlFor="language-select"
+          style={{ fontSize: "16px", fontWeight: "bold" }}
+        >
           Select Language:
         </label>
         <select
@@ -215,12 +294,12 @@ const DSAPlayground = () => {
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           style={{
-            padding: "5px",
+            padding: "10px",
             fontSize: "16px",
-            backgroundColor: "#4a4a4a", // Grey background
-            color: "#ffffff", // White font color
-            border: "1px solid #ccc",
-            borderRadius: "4px",
+            backgroundColor: "#2a2a3b",
+            color: "#ffffff",
+            border: "1px solid #00d4ff",
+            borderRadius: "8px",
           }}
         >
           <option value="javascript">JavaScript</option>
@@ -229,6 +308,8 @@ const DSAPlayground = () => {
           <option value="python">Python</option>
         </select>
       </div>
+
+      {/* Code Editor */}
       <Editor
         height="400px"
         language={language}
@@ -246,34 +327,96 @@ const DSAPlayground = () => {
         value={code}
         onChange={(value) => setCode(value || "")}
         theme="vs-dark"
+        options={{
+          fontSize: 14,
+          minimap: { enabled: false },
+        }}
       />
-      <div style={{ marginTop: "10px" }}>
-        <button onClick={runCode} style={{ marginRight: "10px" }}>
+
+      {/* Buttons */}
+      <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+        <button
+          onClick={runCode}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            backgroundColor: "#00d4ff",
+            color: "#1e1e2f",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
           Run Code
         </button>
+        <button
+          onClick={() => handleTimerSelection(5)}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            backgroundColor: "#2a2a3b",
+            color: "#ffffff",
+            border: "1px solid #00d4ff",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          5 Min Timer
+        </button>
+        <button
+          onClick={() => handleTimerSelection(10)}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            backgroundColor: "#2a2a3b",
+            color: "#ffffff",
+            border: "1px solid #00d4ff",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          10 Min Timer
+        </button>
+        <button
+          onClick={() => handleTimerSelection(15)}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            fontWeight: "bold",
+            backgroundColor: "#2a2a3b",
+            color: "#ffffff",
+            border: "1px solid #00d4ff",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          15 Min Timer
+        </button>
       </div>
-      <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div>
-          <h3>Timer</h3>
-          <div style={{ marginBottom: "10px" }}>
-            <button onClick={() => handleTimerSelection(5)} style={{ marginRight: "10px" }}>
-              5 Minutes
-            </button>
-            <button onClick={() => handleTimerSelection(10)} style={{ marginRight: "10px" }}>
-              10 Minutes
-            </button>
-            <button onClick={() => handleTimerSelection(15)}>15 Minutes</button>
-          </div>
-          {isTimerRunning && <p>Time Remaining: {formatTime(timer)}</p>}
-        </div>
-        <div>
-          <h3>Feedback</h3>
-          <pre
-            style={{ whiteSpace: "pre-wrap" }}
-            dangerouslySetInnerHTML={{ __html: feedback }}
-          ></pre>
-        </div>
-      </div>
+
+      {/* Feedback Section */}
+      <section
+        style={{
+          marginTop: "20px",
+          padding: "15px",
+          backgroundColor: "#2a2a3b",
+          borderRadius: "8px",
+        }}
+      >
+        <h2 style={{ fontSize: "20px", marginBottom: "10px" }}>Feedback</h2>
+        <pre
+          style={{
+            whiteSpace: "pre-wrap",
+            lineHeight: "1.6",
+            fontSize: "14px",
+            color: "#ffffff",
+          }}
+          dangerouslySetInnerHTML={{ __html: feedback }}
+        ></pre>
+      </section>
     </div>
   );
 };

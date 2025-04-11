@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/firebase"; // Assuming firebase is set up
 
 // Simulated user data
 const initialStats = {
@@ -13,12 +15,6 @@ const initialStats = {
   mockInterviews: 3,
   roadmapProgress: 60, // Percentage
 };
-
-const leaderboard = [
-  { name: "Avansh Yadav", xp: 1520 },
-  { name: "Aryan Singh", xp: 1400 },
-  { name: "Gagan", xp: 1350 },
-];
 
 const roadmapSteps = [
   { title: "Data Structures", week: 1, completed: true },
@@ -33,6 +29,32 @@ export default function Dashboard() {
   const [resumeName, setResumeName] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showRoadmap, setShowRoadmap] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]); // Add state for leaderboard
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      const snapshot = await getDocs(collection(db, "users"));
+      const users = snapshot.docs.map((doc) => doc.data());
+      const sortedUsers = users
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, 3); // Get top 3 performers
+      setLeaderboard(sortedUsers);
+    };
+    fetchLeaderboard();
+  }, []);
+
+  useEffect(() => {
+    const lastVisit = localStorage.getItem("lastVisit");
+    const today = new Date().toDateString();
+
+    if (lastVisit !== today) {
+      setStats((prev) => ({
+        ...prev,
+        streak: prev.streak + 1,
+      }));
+      localStorage.setItem("lastVisit", today);
+    }
+  }, []);
 
   // Handle resume upload
   const handleResumeUpload = (e) => {
@@ -88,24 +110,8 @@ export default function Dashboard() {
         </Card>
         <Card className="bg-zinc-800">
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold">⚡ XP Points</h2>
+            <h2 className="text-lg font-semibold">⚡ Points</h2>
             <p className="text-4xl mt-2">{stats.xp}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-800">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold">📅 Scheduler</h2>
-            <Button className="mt-2 bg-emerald-600 hover:bg-emerald-700">
-              Schedule Mock
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-800">
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold">🤖 AI Assistant</h2>
-            <Button className="mt-2 bg-blue-600 hover:bg-blue-700">
-              Ask a Doubt
-            </Button>
           </CardContent>
         </Card>
       </motion.div>
@@ -123,7 +129,7 @@ export default function Dashboard() {
             </p>
             <div className="flex gap-4">
               <Button
-                onClick={completeChallenge}
+                onClick={() => (window.location.href = "/challenge")}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 Solve Now
@@ -171,8 +177,8 @@ export default function Dashboard() {
               <ul className="space-y-2">
                 {leaderboard.map((entry, idx) => (
                   <li key={idx}>
-                    {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"} {entry.name} —{" "}
-                    {entry.xp} XP
+                    {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"} {entry.name || "Anonymous"} —{" "}
+                    {entry.points || 0} Points
                   </li>
                 ))}
               </ul>
@@ -188,10 +194,10 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">📈 Prep Roadmap</h2>
               <Button
-                onClick={() => setShowRoadmap(!showRoadmap)}
+                onClick={() => (window.location.href = "/roadmap")}
                 className="bg-gray-700 hover:bg-gray-600"
               >
-                {showRoadmap ? "Hide" : "Show"}
+                Show
               </Button>
             </div>
             {showRoadmap && (
@@ -218,6 +224,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </motion.div>
-    </div>
-  );
+    </div>
+  );
 }

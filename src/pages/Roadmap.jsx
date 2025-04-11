@@ -10,7 +10,7 @@ const Chatbot = () => {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]); // Store past roadmaps
 
-  const backendURL = "http://localhost:10000"; // Replace with your backend URL
+  const apiKey = import.meta.env.VITE_GEMENI_API_KEY; // Use environment variable for security
 
   const getRoadmap = async () => {
     if (!userGoal.trim() || !timeAvailable || !skillLevel) {
@@ -29,23 +29,44 @@ const Chatbot = () => {
     setResponse("⏳ Generating your personalized roadmap... Please wait.");
 
     try {
-      const res = await fetch(`${backendURL}/generate-roadmap`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userGoal,
-          timeAvailable,
-          skillLevel,
-          isBeginner,
-        }),
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `Generate a personalized learning roadmap for the following details:\n\nGoal: ${userGoal}\nTime Available: ${timeAvailable} hours per week\nSkill Level: ${skillLevel}\nBeginner: ${isBeginner}\n\nProvide the roadmap in a structured format with bullet points.`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 512,
+            },
+          }),
+        }
+      );
 
-      if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! Status: ${res.status}`);
+      }
 
       const data = await res.json();
-      let formatted = data.advice
+      const generatedRoadmap =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "Failed to generate the roadmap. Please try again.";
+
+      // Format the response
+      const formatted = generatedRoadmap
         .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
         .replace(/\*(.*?)\*/g, "<i>$1</i>")
         .replace(/•\s?(.*?)(\n|$)/g, "<li>$1</li>")
@@ -57,8 +78,12 @@ const Chatbot = () => {
         { goal: userGoal, time: timeAvailable, level: skillLevel, roadmap: formatted },
       ]);
     } catch (err) {
-      console.error("Fetch error:", err);
-      setResponse("❌ Error fetching roadmap. Please try again.");
+      console.error("Error generating roadmap:", err);
+      if (err.message.includes("Failed to fetch")) {
+        setResponse("❌ Network error. Please check your internet connection and try again.");
+      } else {
+        setResponse("❌ Error generating roadmap. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

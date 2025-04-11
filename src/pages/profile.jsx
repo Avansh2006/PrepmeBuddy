@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/clerk-react";
 import { db } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -8,6 +8,8 @@ export default function ProfilePage() {
   const { user, isLoaded } = useUser();
   const [userData, setUserData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [points, setPoints] = useState(0); // New state for points
+  const [solvedQuestions, setSolvedQuestions] = useState([]); // New state for solved questions
 
   const [formData, setFormData] = useState({
     name: "",
@@ -44,11 +46,33 @@ export default function ProfilePage() {
           twitter: data.twitter || "",
           linkdin: data.linkdin || "",
         });
+        setPoints((data.questionsSolved || 0) * 100); // Calculate points
+        setSolvedQuestions(data.solvedQuestions || []); // Update solved questions
       } else {
         setIsEditing(true);
       }
     };
     fetchData();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const userRef = doc(db, "users", user.id);
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const solvedQuestions = data.solvedQuestions || [];
+        const calculatedPoints = solvedQuestions.length * 100; // Calculate points dynamically
+        setPoints(calculatedPoints);
+        setSolvedQuestions(solvedQuestions);
+
+        // Update points in Firestore for leaderboard
+        updateDoc(userRef, { points: calculatedPoints });
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, [user]);
 
   const handleChange = (e) => {
@@ -153,6 +177,26 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Points Section */}
+      <div className="mt-6 text-center">
+        <h3 className="text-xl font-semibold">🏆 Points</h3>
+        <p className="text-lg">{points} Points</p>
+      </div>
+
+      {/* Solved Questions Section */}
+      <div className="mt-6 text-center">
+        <h3 className="text-xl font-semibold">✅ Solved Questions</h3>
+        {solvedQuestions.length > 0 ? (
+          <ul className="list-disc list-inside">
+            {solvedQuestions.map((id) => (
+              <li key={id} className="text-gray-700">{id}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No questions solved yet.</p>
+        )}
+      </div>
+
       <div className="mt-6 text-center">
         {isEditing ? (
           <button
@@ -170,6 +214,6 @@ export default function ProfilePage() {
           </button>
         )}
       </div>
-    </div>
-  );
+    </div>
+  );
 }

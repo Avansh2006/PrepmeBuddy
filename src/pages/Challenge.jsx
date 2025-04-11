@@ -49,11 +49,11 @@ export default function ChallengesPage() {
     currentPage * challengesPerPage
   );
 
-  const handleSolveChallenge = (leetCodeUrl) => {
-    if (leetCodeUrl) {
-      window.location.href = leetCodeUrl;
+  const handleSolveChallenge = (challengeId) => {
+    if (challengeId) {
+      window.location.href = `/dsa?questionId=${challengeId}`;
     } else {
-      alert("No LeetCode problem available for this challenge.");
+      alert("No specific question available for this challenge.");
     }
   };
 
@@ -109,11 +109,11 @@ export default function ChallengesPage() {
                   <p className="text-xs text-gray-500 mt-1">Hint: {challenge.hint}</p>
                 )}
                 <button
-                  onClick={() => handleSolveChallenge(challenge.leetCodeUrl)}
+                  onClick={() => handleSolveChallenge(challenge.id)}
                   className={`mt-3 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm rounded transition-colors ${
-                    !challenge.leetCodeUrl ? "opacity-50 cursor-not-allowed" : ""
+                    !challenge.id ? "opacity-50 cursor-not-allowed" : ""
                   }`}
-                  disabled={!challenge.leetCodeUrl}
+                  disabled={!challenge.id}
                 >
                   Solve Challenge
                 </button>
@@ -130,5 +130,5 @@ export default function ChallengesPage() {
         className="text-white"
       />
     </div>
-  );
+   );
 }

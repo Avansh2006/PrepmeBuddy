@@ -203,10 +203,13 @@ const ChatBot = () => {
                     {messages.map((msg, index) => (
                         <div key={index} className="mb-4">
                             <div className="text-blue-600 font-semibold">You:</div>
-                            <div className="bg-gray-200 p-2 flex items-center gap-4 rounded-lg"><img src="https://randomuser.me/api/portraits/men/44.jpg" alt="img" className="h-8 w-8 rounded-full" />{msg.user}</div>
+                            <div className="bg-gray-200 p-2 flex items-center gap-4 rounded-lg text-gray-800"><img src="https://randomuser.me/api/portraits/men/44.jpg" alt="img" className="h-8 w-8 rounded-full" />{msg.user}</div>
 
                             <div className="text-purple-600 font-semibold mt-2">Samantha:</div>
-                            <div className="bg-white p-3 rounded-lg shadow-sm flex gap-4 items-center"><img src="https://randomuser.me/api/portraits/women/44.jpg" alt="avatar" className="h-8 w-8 rounded-full" />{msg.bot}</div>
+                            <div className="bg-purple-200 border border-purple-500 p-3 rounded-lg shadow-md flex gap-4 items-center font-bold text-gray-800">
+                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="avatar" className="h-8 w-8 rounded-full" />
+                                {msg.bot}
+                            </div>
                         </div>
                     ))}
                 </div>
