@@ -13,7 +13,7 @@ import Signup from "./pages/Signup";
 import AdminPanel from "./pages/AdminPanel";
 import Profile from "./pages/profile";
 import Logout from "./pages/logout";
-
+import QuizApp from "./pages/Quiz";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -41,6 +41,7 @@ function AppNav() {
         {navLink("/leaderboard", "Leaderboard")}
         {navLink("/roadmap", "Roadmap")}
         {navLink("/profile", "Profile")}
+        {navLink("/quizapp", "Quiz")}
         {isSignedIn && user?.publicMetadata?.role === "admin" && navLink("/admin", "Admin Panel")}
         {isSignedIn && navLink("/logout", "Logout")}
         <SignedOut>
@@ -73,6 +74,7 @@ function App() {
             <Route path="/challenge/:id" element={<SignedIn><SolveChallenge /></SignedIn>} />
             <Route path="/leaderboard" element={<SignedIn><Leaderboard /></SignedIn>} />
             <Route path="/roadmap" element={<SignedIn><Roadmap /></SignedIn>} />
+            <Route path="/quizapp" element={<SignedIn><QuizApp /></SignedIn>} />
             <Route path="/profile" element={<SignedIn><Profile /></SignedIn>} />
             <Route path="/login" element={<SignedOut><Login /></SignedOut>} />
             <Route path="/signup" element={<SignedOut><Signup /></SignedOut>} />

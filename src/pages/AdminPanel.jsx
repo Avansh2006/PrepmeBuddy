@@ -1,5 +1,3 @@
-// Enhanced Admin Challenge Dashboard
-
 import React, { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import {
@@ -30,6 +28,7 @@ export default function AdminPanel() {
     description: "",
     tags: "",
     hint: "",
+    leetCodeUrl: "", // Added LeetCode URL field
   });
   const [editId, setEditId] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -38,9 +37,14 @@ export default function AdminPanel() {
   const challengesPerPage = 5;
 
   const fetchChallenges = async () => {
-    const snapshot = await getDocs(collection(db, "adminChallenges"));
-    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setChallenges(data);
+    try {
+      const snapshot = await getDocs(collection(db, "adminChallenges"));
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setChallenges(data);
+    } catch (error) {
+      console.error("Error fetching challenges:", error);
+      setChallenges([]);
+    }
   };
 
   useEffect(() => {
@@ -49,22 +53,54 @@ export default function AdminPanel() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.category || !form.description) return;
-
-    if (editId) {
-      await updateDoc(doc(db, "adminChallenges", editId), form);
-      setEditId(null);
-    } else {
-      await addDoc(collection(db, "adminChallenges"), form);
+    if (!form.title || !form.category || !form.description) {
+      alert("Title, Category, and Description are required!");
+      return;
     }
 
-    setForm({ title: "", category: "", description: "", tags: "", hint: "" });
-    fetchChallenges();
+    try {
+      const challengeData = {
+        title: form.title,
+        category: form.category,
+        description: form.description,
+        tags: form.tags || "",
+        hint: form.hint || "",
+        leetCodeUrl: form.leetCodeUrl.trim() || "", // Store empty string if not provided
+        createdAt: editId ? form.createdAt || new Date().toISOString() : new Date().toISOString(),
+      };
+
+      if (editId) {
+        await updateDoc(doc(db, "adminChallenges", editId), challengeData);
+        setEditId(null);
+      } else {
+        await addDoc(collection(db, "adminChallenges"), challengeData);
+      }
+
+      setForm({
+        title: "",
+        category: "",
+        description: "",
+        tags: "",
+        hint: "",
+        leetCodeUrl: "",
+      });
+      fetchChallenges();
+      alert(`Challenge ${editId ? "updated" : "added"} successfully!`);
+    } catch (error) {
+      console.error("Error saving challenge:", error);
+      alert("Failed to save challenge. Please try again.");
+    }
   };
 
   const handleDelete = async (id) => {
-    await deleteDoc(doc(db, "adminChallenges", id));
-    fetchChallenges();
+    try {
+      await deleteDoc(doc(db, "adminChallenges", id));
+      fetchChallenges();
+      alert("Challenge deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting challenge:", error);
+      alert("Failed to delete challenge. Please try again.");
+    }
   };
 
   const handleEdit = (challenge) => {
@@ -74,6 +110,7 @@ export default function AdminPanel() {
       description: challenge.description,
       tags: challenge.tags || "",
       hint: challenge.hint || "",
+      leetCodeUrl: challenge.leetCodeUrl || "",
     });
     setEditId(challenge.id);
   };
@@ -103,17 +140,17 @@ export default function AdminPanel() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              placeholder="Title"
+              placeholder="Title *"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />
             <Input
-              placeholder="Category"
+              placeholder="Category *"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             />
             <Input
-              placeholder="Description"
+              placeholder="Description *"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
@@ -126,6 +163,11 @@ export default function AdminPanel() {
               placeholder="Hint"
               value={form.hint}
               onChange={(e) => setForm({ ...form, hint: e.target.value })}
+            />
+            <Input
+              placeholder="LeetCode URL"
+              value={form.leetCodeUrl}
+              onChange={(e) => setForm({ ...form, leetCodeUrl: e.target.value })}
             />
             <Button type="submit">{editId ? "Update" : "Add"}</Button>
           </form>
@@ -165,10 +207,19 @@ export default function AdminPanel() {
                   <p className="text-sm text-gray-500">{challenge.category}</p>
                   <p>{challenge.description}</p>
                   {challenge.tags && (
-                    <p className="text-xs text-gray-700 mt-1">Tags: {challenge.tags}</p>
+                    <p className="text-xs text-gray-700 mt-1">
+                      Tags: {challenge.tags}
+                    </p>
                   )}
                   {challenge.hint && (
-                    <p className="text-xs text-blue-600 mt-1">Hint: {challenge.hint}</p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Hint: {challenge.hint}
+                    </p>
+                  )}
+                  {challenge.leetCodeUrl && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      LeetCode: <a href={challenge.leetCodeUrl} target="_blank" rel="noopener noreferrer">{challenge.leetCodeUrl}</a>
+                    </p>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -191,6 +242,6 @@ export default function AdminPanel() {
         currentPage={currentPage}
         onPageChange={handlePageChange}
       />
-    </div>
-  );
+    </div>
+  );
 }
